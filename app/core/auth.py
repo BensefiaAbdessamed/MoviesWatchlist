@@ -5,6 +5,9 @@ import jwt
 from typing import Optional
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pwdlib import PasswordHash
+from sqlalchemy import select
+from sqlalchemy.engine.result import result_tuple
+from sqlalchemy.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.schemas.user import Token
@@ -52,9 +55,9 @@ def verify_access_token(token: str) -> int | None:
         sub = payload.get("sub")
         return int(sub) if sub else None
 
-def get_current_user(
+async def get_current_user(
     token: str = Depends(oauth2_scheme), 
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -64,8 +67,10 @@ def get_current_user(
         
     token_data = verify_access_token(token=token)
     
-    user = db.query(User).filter(User.id == token_data).first() if token_data else None
 
+    result = await db.execute(select(User).where(User.id == token_data)) if token_data else None
+    user = result.scalar_one_or_none() if result else None
+    
     if user is None:
         raise credentials_exception
         

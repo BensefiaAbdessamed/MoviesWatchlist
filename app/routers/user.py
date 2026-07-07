@@ -1,4 +1,3 @@
-from select import select
 from sqlite3 import IntegrityError
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -6,10 +5,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, selectinload
 from app.database.session import get_db
-from app.database.connection import SessionLocal
 from app.models.database import Movie, Review, User, Watchlist, Role
 from app.schemas import user, watchlist, review
-from app.core.auth import RoleChecker, hash_password, get_current_user, get_current_user_id
+from app.core.auth import RoleChecker, get_current_user_id
 
 router = APIRouter(prefix="/users", tags=["users"])
 

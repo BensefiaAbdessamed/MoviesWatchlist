@@ -21,8 +21,9 @@ SessionLocal = async_sessionmaker(
 )
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI)
+async def lifespan(_app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(base.metadata.create_all)
     yield
     await engine.dispose()
+

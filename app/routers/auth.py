@@ -1,9 +1,10 @@
 from sqlite3 import IntegrityError
+from sqlalchemy import select
 
 from fastapi import APIRouter, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio.session import AsyncSession
 
 from app.core.auth import create_access_token, hash_password, verify_password
 from app.database.session import get_db
@@ -14,12 +15,12 @@ from app.core import auth
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/login")
-def login(
+async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    # user data from the DB
-    user = db.query(User).filter(User.username == form_data.username).first()
+    result = await db.execute(select(User).where(User.username == form_data.username))
+    user = result.scalar_one_or_none()
 
     #   validate user cridentials
     if not user:
@@ -35,18 +36,20 @@ def login(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/registration", response_model=user.UserPrivate)
-def register(
+async def register(
     user: user.UserCreate,
-    db: Session = Depends(get_db), 
+    db: AsyncSession = Depends(get_db), 
 ):
     hashed_pass = hash_password(user.password)
 
-    user_found = db.query(User).filter(User.username == user.username).first()
+    result = await db.execute(select(User).where(User.username == user.username))
+    user_found = result.scalar_one_or_none()
     
     if user_found:
         raise HTTPException(status_code=401, detail="user already exists")
 
-    email_found = db.query(User).filter(User.email == user.email).first()
+    result_found = await db.execute(select(User).where(User.email == user.email.lower()))
+    email_found = result_found.scalar_one_or_none()
     if email_found:
         raise HTTPException(status_code=401, detail="email already exists")
 
@@ -59,14 +62,14 @@ def register(
 
     db.add(reg_user)
     try:
-        db.commit()
+        await db.commit()
     except IntegrityError:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=404, detail="integrity error")
 
-    db.refresh(reg_user)
+    await db.refresh(reg_user)
     return reg_user
 
 @router.get("/me", response_model=user.UserPrivate)
-def me(user: User = Depends(auth.get_current_user)):
+async def me(user: User = Depends(auth.get_current_user)):
     return user
