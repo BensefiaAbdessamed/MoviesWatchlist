@@ -8,6 +8,7 @@ from app.models.database import Review, User
 from app.schemas import review
 from app.core.auth import get_current_user, RoleChecker, Role
 
+
 router = APIRouter(prefix ="/reviews", tags=["reviews"])
 @router.get("/", response_model=list[review.ReviewRead])
 def get_reviews(

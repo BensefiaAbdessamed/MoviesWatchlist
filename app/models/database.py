@@ -56,6 +56,3 @@ class Review(connection.base):
     
     movie : Mapped["Movie"] = relationship(back_populates="review_entry")
     user : Mapped["User"] = relationship(back_populates="review_entry")
-
-
-connection.base.metadata.create_all(bind=connection.engine)  
