@@ -1,14 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlite3 import IntegrityError
-from app.models.database import Movie, Review, User, Watchlist, Role
+from app.exceptions.user_exceptions import UserNotFoundError
+from app.models.database import User
 from sqlalchemy import select
 from fastapi import HTTPException
 
 async def get_users(db: AsyncSession):
     result = await db.execute(select(User))
     users = result.scalars().all()
-    if not users:
-        raise HTTPException(status_code=404, detail="No users to be found")
     return users
 
 async def get_user(
@@ -18,7 +16,7 @@ async def get_user(
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=404, detail="No users to be found")
+        raise UserNotFoundError(user_id)
     return user
 
 async def find_user(

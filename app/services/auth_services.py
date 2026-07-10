@@ -1,6 +1,8 @@
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlite3 import IntegrityError
+from app.exceptions.auth_exceptions import NotAuthenticatedError
+from app.exceptions.user_exceptions import AlreadyExists
 from app.models.database import User
 from sqlalchemy import select
 from fastapi import HTTPException
@@ -16,12 +18,11 @@ async def login(
 
     #   validate user cridentials
     if not user:
-        raise HTTPException(status_code=401, detail="user not found")
+        raise NotAuthenticatedError()
 
     valid = verify_password(form_data.password, user.password_hash)
     if not valid:
-        raise HTTPException(status_code=401, detail="username or password is invalid")
-
+        raise NotAuthenticatedError()
     #   create the token access then yield it 
     access_token = create_access_token(data={"sub": str(user.id)})
 
@@ -37,13 +38,12 @@ async def register(
     user_found = result.scalar_one_or_none()
     
     if user_found:
-        raise HTTPException(status_code=401, detail="user already exists")
-
+        raise AlreadyExists("USER")
     result_found = await db.execute(select(User).where(User.email == user.email.lower()))
     email_found = result_found.scalar_one_or_none()
-    if email_found:
-        raise HTTPException(status_code=401, detail="email already exists")
 
+    if email_found:
+        raise AlreadyExists("EMAIL")
     reg_user = User(
         username = user.username,
         email = user.email.lower(),
@@ -56,7 +56,6 @@ async def register(
         await db.commit()
     except IntegrityError:
         await db.rollback()
-        raise HTTPException(status_code=404, detail="integrity error")
-
+        raise AlreadyExists("USER CRIDENTIALS")
     await db.refresh(reg_user)
     return reg_user
