@@ -40,6 +40,7 @@ async def remove_user(
 async def get_user_watchlist(
     user_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(RoleChecker(allowed_roles=[Role.ADMIN, Role.USER])),
 ):
     return await watchlist_services.get_user_watchlist(user_id, db)
     

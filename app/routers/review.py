@@ -16,10 +16,7 @@ async def get_reviews(
     current_user: User = Depends(RoleChecker(allowed_roles=[Role.ADMIN])),
 ):
     return await review_services.get_reviews(db)
-    
-@router.get("/{movie_id}", response_model=list[review.ReviewRead])
-async def get_film_reviews(movie_id: int, db: AsyncSession = Depends(get_db)):
-    return await review_services.get_film_reviews(movie_id, db)
+
 
 @router.delete("/")
 async def remove_review(
@@ -28,3 +25,8 @@ async def remove_review(
     db: AsyncSession = Depends(get_db),
 ):
     return await review_services.remove_review(movie_id, user, db)
+
+@router.get("/{movie_id}/reviews", response_model=list[review.ReviewRead])
+async def get_movie_reviews(movie_id: int,  db: AsyncSession = Depends(get_db)):
+
+    return await review_services.get_movie_reviews(movie_id, db)
