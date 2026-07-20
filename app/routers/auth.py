@@ -32,10 +32,24 @@ async def me(user: User = Depends(auth.get_current_user)):
 
 @router.post("/refresh")
 async def refresh(
-  request: Request,  
+  request: Request,
+  response: Response,
   db: AsyncSession = Depends(get_db)
 ):
     return await auth_services.refresh(
         request,
+        response,
         db
+    )
+
+@router.post("/logout")
+async def logout(
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(auth.get_current_user)
+):
+    return await auth_services.logout(
+        response,
+        db,
+        user,
     )
