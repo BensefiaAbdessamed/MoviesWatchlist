@@ -30,6 +30,7 @@ class User(connection.base):
     username : Mapped[str] = mapped_column(unique=True)
     email: Mapped[str] = mapped_column(nullable=False)
     password_hash: Mapped[str] = mapped_column(nullable=False)
+    refresh_token: Mapped[str] = mapped_column(nullable=True)
     role: Mapped[Role] = mapped_column(default=Role.USER, nullable=False)
     watchlist_entry : Mapped[list["Watchlist"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     review_entry : Mapped[list["Review"]] = relationship(back_populates="user", cascade="all, delete-orphan")

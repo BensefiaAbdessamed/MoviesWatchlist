@@ -10,6 +10,7 @@ from sqlalchemy.engine.result import result_tuple
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import Session
 from app.database.session import get_db
+from app.exceptions import user_exceptions
 from app.schemas.user import Token
 from app.core.config import settings
 from app.models.database import Role, User
@@ -40,7 +41,19 @@ def create_access_token(
     encoded_jwt = jwt.encode(data_copy, settings.secret_key.get_secret_value(), algorithm=settings.algorithm)
     return encoded_jwt
 
-def verify_access_token(token: str) -> int | None:
+def create_refresh_token(
+    data: dict
+):
+    data_copy = data.copy()
+    #   set the expiry date
+    expire = datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days)
+
+    #   encoding it 
+    data_copy.update({"exp": expire})
+    encoded_jwt = jwt.encode(data_copy, settings.secret_key.get_secret_value(), algorithm=settings.algorithm)
+    return encoded_jwt  #   return the refresh token
+   
+def verify_token(token: str) -> int | None:
     try:
         payload = jwt.decode(
             token,
@@ -55,6 +68,27 @@ def verify_access_token(token: str) -> int | None:
         sub = payload.get("sub")
         return int(sub) if sub else None
 
+async def verify_refresh_token(
+    user_id: int,
+    db: AsyncSession
+):
+    result = await db.execute(select(User).filter(User.id == user_id))
+    found_user = result.scalar_one()
+    try:
+        payload = jwt.decode(
+            found_user.refresh_token,
+            settings.secret_key.get_secret_value(),
+            algorithms=[settings.algorithm],
+            options={"require": ["exp", "sub"]},
+        )
+
+    except jwt.InvalidTokenError:
+        return None
+    else:
+        sub = payload.get("sub")
+        return int(sub) if sub else None
+    
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme), 
     db: AsyncSession = Depends(get_db)
@@ -64,9 +98,8 @@ async def get_current_user(
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-        
-    token_data = verify_access_token(token=token)
-    
+  
+    token_data = verify_token(token=token)
 
     result = await db.execute(select(User).where(User.id == token_data)) if token_data else None
     user = result.scalar_one_or_none() if result else None

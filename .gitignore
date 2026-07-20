@@ -5,6 +5,7 @@ build/
 dist/
 wheels/
 *.egg-info
+Engineering_Guide.md
 
 .env
 app/routers/passwordForGitHub
