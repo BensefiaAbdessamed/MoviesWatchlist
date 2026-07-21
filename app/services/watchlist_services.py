@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlite3 import IntegrityError
+from sqlalchemy.exc import IntegrityError
 from app.exceptions.movie_exceptions import MovieNotFoundError
 from app.exceptions.wathclist_exceptions import WatchlistAlreadyExists, WatchlistNotFoundError
 from app.models.database import Movie, Watchlist
@@ -48,4 +48,49 @@ async def add_to_watchlist(
     await db.refresh(new_watchlist)
     return new_watchlist
 
-    
+
+async def update_watchlist_status(
+    movie_id: int,
+    the_watchlist: watchlist.WatchlistUpdate,
+    user_id: int,
+    db: AsyncSession
+):
+    result = await db.execute(
+        select(Watchlist).where(
+            Watchlist.movie_id == movie_id,
+            Watchlist.user_id == user_id,
+        )
+    )
+    watchlist_item = result.scalar_one_or_none()
+
+    if not watchlist_item:
+        raise WatchlistNotFoundError(user_id)
+
+    watchlist_item.Status = the_watchlist.status
+    await db.commit()
+    await db.refresh(watchlist_item)
+    return watchlist_item
+
+async def remove_from_watchlist(
+    movie_id: int,
+    user_id: int,
+    db: AsyncSession
+):
+    result = await db.execute(
+        select(Watchlist).where(
+            Watchlist.movie_id == movie_id,
+            Watchlist.user_id == user_id,
+        )
+    )
+    watchlist_item = result.scalar_one_or_none()
+
+    if not watchlist_item:
+        raise WatchlistNotFoundError(user_id)
+
+    await db.delete(watchlist_item)
+    await db.commit()
+    return {
+        "status code": 200,
+        "detail": "movie removed from watchlist successfully"
+    }
+
