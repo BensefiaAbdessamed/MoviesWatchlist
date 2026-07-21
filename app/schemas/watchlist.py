@@ -8,6 +8,9 @@ class WatchlistBase(BaseModel):
 class WatchlistCreate(WatchlistBase):
     pass
 
+class WatchlistUpdate(BaseModel):
+    status: WatchStatus
+
 class WatchlistRead(WatchlistBase):
     user_id: int
 
