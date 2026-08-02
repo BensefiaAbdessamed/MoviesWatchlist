@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
 from app.database.session import get_db
 from app.models.database import User
 from app.schemas import review, user, watchlist
-from app.services import review_services, watchlist_services
+from app.services import review_services, user_services, watchlist_services
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -58,3 +58,15 @@ async def get_my_reviews(
     db: AsyncSession = Depends(get_db),
 ):
     return await review_services.get_user_reviews(current_user.id, db)
+
+@router.patch("", response_model=user.UserPrivate)
+async def update_pfp(
+    image: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    return await user_services.update_user_image(
+        user_id=user.id,
+        image_file=image,
+        db=db
+    )
